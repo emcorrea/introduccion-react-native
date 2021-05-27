@@ -1,27 +1,47 @@
 import React, {Component} from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, FlatList, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import Http from '../../libs/http';
-
+import CoinsItems from './CoinsItem';
+import Colors from '../../res/colors';
 class CoinsScreen extends Component{
 
-    componentDidMount = async () => {
-        const coins = await Http.instance.get("https://api.coinlore.net/api/tickers/");
-        console.log("coins", coins)
+    state = {
+        coins: [],
+        loading: false
     }
 
-    handlePress = () => {
-        console.log('go to detail', this.props)
+    componentDidMount = async () => {
+        this.setState({loading: true});
+        const res = await Http.instance.get("https://api.coinlore.net/api/tickers/");
+        this.setState({coins: res.data, loading: false});
+    }
 
-        this.props.navigation.navigate('CoinDetail');
+    handlePress = (coin) => {
+        this.props.navigation.navigate('CoinDetail', {coin});
     }
 
     render(){
+
+        const { coins, loading } = this.state
         return (
             <View style={styles.container}>
-                <Text style={styles.titleText}>Coins Screen</Text>
-                <Pressable style={styles.btn} onPress={this.handlePress}>
-                    <Text style={styles.btnText}>Ir a details</Text>
-                </Pressable>
+                {   loading ? 
+                    <ActivityIndicator 
+                        style={styles.loader}
+                        color="#fff" 
+                        size="large"
+                    />
+                    : null
+                }
+                <FlatList
+                    data={coins}
+                    renderItem={({ item }) => 
+                    <CoinsItems 
+                        item={item} 
+                        onPress={() => this.handlePress(item)}
+                    />
+                }
+                />
             </View>
         );
     }
@@ -30,7 +50,7 @@ class CoinsScreen extends Component{
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "red"
+        backgroundColor: Colors.charade
     },
     titleText: {
         color: "#fff",
@@ -45,6 +65,9 @@ const styles = StyleSheet.create({
     btnText: {
         color: "#fff",
         textAlign: "center"
+    },
+    loader: {
+        marginTop: 60
     }
 });
 
