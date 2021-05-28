@@ -1,14 +1,69 @@
 import React, {Component} from 'react';
-import { View, Image, Text, SectionList, FlatList, StyleSheet } from 'react-native';
+import { View, Image, Text, Pressable, SectionList, FlatList, StyleSheet, Alert } from 'react-native';
 import Http from '../../libs/http';
 import Colors from '../../res/colors';
+import Storage from '../../libs/storage';
 import CoinsMarketItem from '../coinDetail/CoinsMarketItem';
 
 class CoinsDetailScreen extends Component{
 
     state = {
         coin: {},
-        markets: []
+        markets: [],
+        isFavorite: false
+    }
+
+    toogleFavorite = () => {
+        if(this.state.isFavorite){
+            this.removeFavorite();
+        }else{
+            this.addFavorite();
+        }
+    }
+
+    addFavorite = async () => {
+        const coin = JSON.stringify(this.state.coin);
+        const key = `favorite-${this.state.coin.id}`;
+        const stored = await Storage.instance.store(key, coin);
+
+        if(stored){
+            this.setState({ isFavorite: true });
+        }
+    }
+
+    removeFavorite = async () => {
+
+        Alert.alert("Atención","Desea eliminar de favorito?",[
+            {
+                text: "Cencelar",
+                onPress: () => {},
+                style: "cancel"
+            },
+            {
+                text: "Eliminar",
+                onPress: async () => {
+                    const key = `favorite-${this.state.coin.id}`;
+                    await Storage.instance.remove(key);
+                    this.setState({ isFavorite: false });
+                },
+                style: "destructive"
+            }
+        ]);
+        
+    }
+
+    getFavorite = async () => {
+
+        try {
+            const key = `favorite-${this.state.coin.id}`;
+            const favStr = await Storage.instance.get(key);
+
+            if(favStr != null){
+                this.setState({ isFavorite: true });
+            }
+        } catch (error) {
+            console.log("error", error);
+        }
     }
 
     getSymbolIcon = (name) => {
@@ -49,18 +104,32 @@ class CoinsDetailScreen extends Component{
         const { coin } = this.props.route.params;
         this.props.navigation.setOptions({title: coin.symbol})
         this.getMarkets(coin.id);
-        this.setState({ coin });
+        this.setState({ coin }, () => {
+            this.getFavorite();
+        });
     }
 
     render() {
         
-        const { coin, markets } = this.state;
+        const { coin, markets, isFavorite } = this.state;
 
         return (
             <View style={style.container}>
                 <View style={style.subHeader}>
-                    <Image style={style.iconImg} source={{ uri: this.getSymbolIcon(coin.name) }}/>
-                    <Text style={style.titleText}>{coin.name}</Text>
+                    <View style={style.row}>
+                        <Image style={style.iconImg} source={{ uri: this.getSymbolIcon(coin.name) }}/>
+                        <Text style={style.titleText}>{coin.name}</Text>
+                    </View>
+                    <Pressable 
+                        onPress={this.toogleFavorite}
+                        style={[
+                        style.btnFavorite,
+                            isFavorite ?
+                            style.btnFavoriteRemove :
+                            style.btnFavoriteAdd
+                    ]}>
+                        <Text style={style.btnFavoriteText}>{ isFavorite ? "Remove favorite": "Add favorite"}</Text>
+                    </Pressable>
                 </View>
                 <SectionList
                     style={style.section}
@@ -98,7 +167,8 @@ const style = StyleSheet.create({
     subHeader: {
         backgroundColor: "#2D2D2C",
         padding: 16,
-        flexDirection: "row"
+        flexDirection: "row",
+        justifyContent: "space-between"
     },
     titleText: {
         fontSize: 16,
@@ -139,6 +209,19 @@ const style = StyleSheet.create({
         fontWeight: "bold",
         marginBottom: 16,
         marginLeft: 16
+    },
+    btnFavorite: {
+        padding: 8,
+        borderRadius: 8
+    },
+    btnFavoriteText:{
+        color: "#fff",
+    },  
+    btnFavoriteAdd: {
+        backgroundColor: Colors.picton
+    },
+    btnFavoriteRemove: {
+        backgroundColor: Colors.carmine
     }
 });
 
