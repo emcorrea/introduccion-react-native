@@ -14,7 +14,7 @@ class FavoritesScreen extends Component {
     getFavorites = async () => {
         try {
             const allKeys = await Storage.instance.getAllKeys();
-            const keys = allKeys.filter((key) => key.includes("favorites-"));
+            const keys = allKeys.filter((key) => key.includes("favorite-"));
             const favs = await Storage.instance.multiGet(keys);
             const favorites = favs.map((fav) => JSON.parse(fav[1]));
             this.setState({ favorites });
